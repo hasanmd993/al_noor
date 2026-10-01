@@ -91,63 +91,17 @@
                 <i class="bx bx-calendar-event text-base"></i> Book VIP Private Viewing
               </button>
 
-              <!-- PDF Brochure Generator Button -->
-              <button 
-                @click="downloadBrochure"
-                :disabled="generatingPdf"
-                class="w-full py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-amber-500/30 text-amber-300 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer disabled:opacity-50"
+              <!-- PDF Brochure Button (Only visible if brochure_pdf exists) -->
+              <a 
+                v-if="hasBrochure"
+                :href="property.brochure_pdf"
+                target="_blank"
+                download
+                class="w-full py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-amber-500/30 text-amber-300 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
               >
-                <i v-if="!generatingPdf" class="bx bxs-file-pdf text-base text-rose-400"></i>
-                <i v-else class="bx bx-loader-alt animate-spin text-base"></i>
-                <span>{{ generatingPdf ? 'Generating PDF Fact Sheet...' : 'Download PDF Brochure' }}</span>
-              </button>
-
-              <!-- Share Property Dropdown -->
-              <div class="relative">
-                <button 
-                  @click="shareMenuOpen = !shareMenuOpen"
-                  class="w-full py-2.5 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                >
-                  <i class="bx bx-share-alt text-base text-amber-400"></i> Share Landmark
-                </button>
-
-                <!-- Share Popover -->
-                <div 
-                  v-if="shareMenuOpen" 
-                  class="absolute bottom-full mb-2 left-0 right-0 bg-slate-900 border border-slate-700 rounded-2xl p-3 shadow-2xl z-20 space-y-1.5 animate-in fade-in duration-150"
-                >
-                  <a 
-                    :href="whatsappShareUrl" 
-                    target="_blank" 
-                    @click="shareMenuOpen = false"
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-emerald-400 hover:bg-slate-800 transition-colors"
-                  >
-                    <i class="bx bxl-whatsapp text-lg"></i> Share via WhatsApp
-                  </a>
-                  <a 
-                    :href="facebookShareUrl" 
-                    target="_blank" 
-                    @click="shareMenuOpen = false"
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-blue-400 hover:bg-slate-800 transition-colors"
-                  >
-                    <i class="bx bxl-facebook text-lg"></i> Share on Facebook
-                  </a>
-                  <a 
-                    :href="linkedinShareUrl" 
-                    target="_blank" 
-                    @click="shareMenuOpen = false"
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sky-400 hover:bg-slate-800 transition-colors"
-                  >
-                    <i class="bx bxl-linkedin text-lg"></i> Share on LinkedIn
-                  </a>
-                  <button 
-                    @click="copyShareLink" 
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-amber-300 hover:bg-slate-800 w-full text-left transition-colors cursor-pointer"
-                  >
-                    <i class="bx bx-copy text-lg"></i> {{ linkCopied ? 'Link Copied!' : 'Copy Direct Link' }}
-                  </button>
-                </div>
-              </div>
+                <i class="bx bxs-file-pdf text-base text-rose-400"></i>
+                <span>Download PDF Brochure</span>
+              </a>
 
               <a 
                 :href="`https://wa.me/8801700000000?text=${encodeURIComponent('Hello Al-Noor Concierge, I am inquiring about ' + property.name + ' in ' + (property.location?.name || property.address))}`"
@@ -393,6 +347,11 @@ const route = useRoute();
 defineEmits(['open-vip-modal']);
 
 const property = ref(null);
+const hasBrochure = computed(() => {
+  return property.value?.brochure_pdf && 
+         property.value.brochure_pdf !== '#' && 
+         property.value.brochure_pdf.trim() !== '';
+});
 const activeImage = ref('');
 const activeImageCaption = ref('');
 const activeImageIndex = ref(0);

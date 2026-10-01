@@ -131,6 +131,7 @@ class AdminController extends Controller
             'progress_percentage' => 'nullable|integer|min:0|max:100',
             'handover_date' => 'nullable|date',
             'featured_image' => 'nullable|string',
+            'brochure_pdf' => 'nullable|string',
             'video_url' => 'nullable|string',
             'short_description' => 'nullable|string',
             'description' => 'nullable|string',
@@ -164,6 +165,7 @@ class AdminController extends Controller
             'progress_percentage' => 'nullable|integer|min:0|max:100',
             'handover_date' => 'nullable|date',
             'featured_image' => 'nullable|string',
+            'brochure_pdf' => 'nullable|string',
             'video_url' => 'nullable|string',
             'short_description' => 'nullable|string',
             'description' => 'nullable|string',
@@ -294,6 +296,7 @@ class AdminController extends Controller
             'category' => 'nullable|string|max:255',
             'author' => 'nullable|string|max:255',
             'featured_image' => 'nullable|string',
+            'brochure_pdf' => 'nullable|string',
             'is_published' => 'boolean',
             'published_at' => 'nullable|date',
         ]);
@@ -311,6 +314,7 @@ class AdminController extends Controller
             'category' => 'nullable|string|max:255',
             'author' => 'nullable|string|max:255',
             'featured_image' => 'nullable|string',
+            'brochure_pdf' => 'nullable|string',
             'is_published' => 'boolean',
             'published_at' => 'nullable|date',
         ]));
@@ -411,15 +415,32 @@ class AdminController extends Controller
         return response()->json(['success' => true, 'message' => 'Slider deleted.']);
     }
 
-        public function uploadMedia(Request $request): JsonResponse
+            public function uploadMedia(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => 'required|image|mimes:jpeg,png,jpg,webp,avif,svg|max:20480',
+            'file' => 'required|file|mimes:jpeg,png,jpg,webp,avif,svg,pdf,doc,docx|max:51200',
         ]);
 
         $file = $request->file('file');
+        $extension = strtolower($file->getClientOriginalExtension());
+        $isPdf = in_array($extension, ['pdf', 'doc', 'docx']);
+
+        if ($isPdf) {
+            $filename = 'brochure_' . time() . '_' . Str::random(8) . '.' . $extension;
+            $destinationPath = storage_path('app/public/brochures');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+            $file->move($destinationPath, $filename);
+            return response()->json([
+                'success' => true,
+                'message' => 'Brochure PDF document uploaded successfully.',
+                'url' => '/storage/brochures/' . $filename,
+                'filename' => $filename,
+            ]);
+        }
+
         $filename = 'media_' . time() . '_' . Str::random(8) . '.webp';
-        
         $destinationPath = storage_path('app/public/media');
         if (!file_exists($destinationPath)) {
             mkdir($destinationPath, 0755, true);

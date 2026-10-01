@@ -168,6 +168,34 @@ const route = useRoute();
 const router = useRouter();
 const isEdit = ref(false);
 const loading = ref(false);
+const uploadingPdf = ref(false);
+const pdfError = ref('');
+const pdfFileInput = ref(null);
+
+const handlePdfUpload = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  uploadingPdf.value = true;
+  pdfError.value = '';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const res = await axios.post('/api/admin/media/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res.data?.url) {
+      form.brochure_pdf = res.data.url;
+    }
+  } catch (err) {
+    console.error('PDF upload failed:', err);
+    pdfError.value = 'Failed to upload PDF file.';
+  } finally {
+    uploadingPdf.value = false;
+  }
+};
 const successMsg = ref('');
 const locations = ref([]);
 const categories = ref([]);
@@ -186,6 +214,7 @@ const form = ref({
   apartments_per_floor: '',
   progress_percentage: 0,
   featured_image: '',
+  brochure_pdf: '',
   video_url: '',
   short_description: '',
   description: '',
