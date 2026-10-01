@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-serif: 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-cinzel: 'Cinzel', serif;
+    --color-gold-300: #e2c07a;
+    --color-gold-400: #d4a751;
+    --color-gold-500: #c6923b;
+    --color-gold-600: #a77728;
+    --color-dark-900: #070a11;
+    --color-dark-800: #0d121f;
+    --color-dark-700: #141c2f;
+    --color-dark-600: #1e2942;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #070a11;
+    color: #e2e8f0;
+  }
+
+  h1, h2, h3, .font-serif-luxury {
+    font-family: var(--font-serif);
+    letter-spacing: -0.01em;
+  }
+
+  .font-cinzel {
+    font-family: var(--font-cinzel);
+  }
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  background: rgba(13, 18, 31, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 167, 81, 0.15);
+}
+
+.glass-panel-hover {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(20, 28, 47, 0.85);
+  border-color: rgba(212, 167, 81, 0.35);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(198, 146, 59, 0.15);
+}
+
+.glass-card {
+  background: rgba(18, 25, 41, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Luxury Gold Text Gradient */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #fcebc7 0%, #d4a751 50%, #a77728 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-gradient-border {
+  border-image: linear-gradient(135deg, #d4a751, transparent, #a77728) 1;
+}
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #d4a751 0%, #c6923b 50%, #9e6f21 100%);
+}
+
+.gold-gradient-bg-hover:hover {
+  background: linear-gradient(135deg, #dfb460 0%, #d4a751 50%, #b37f2a 100%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #070a11;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2942;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c6923b;
+}
+
+/* Leaflet Custom Marker Styling */
+.custom-leaflet-marker {
+  background: #c6923b;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(198, 146, 59, 0.7);
+  animation: pulse-marker 2s infinite;
+}
+
+@keyframes pulse-marker {
+  0% {
+    box-shadow: 0 0 0 0 rgba(198, 146, 59, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(198, 146, 59, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(198, 146, 59, 0);
+  }
+}
+
+.leaflet-popup-content-wrapper {
+  background: #0d121f !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(212, 167, 81, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.7) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-popup-tip {
+  background: #0d121f !important;
+  border: 1px solid rgba(212, 167, 81, 0.3) !important;
+}
+
+.leaflet-container {
+  font-family: inherit !important;
+}
+
+/* Luxury animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
