@@ -7,7 +7,6 @@
           <img src="/images/logo.jpeg" alt="Al-Noor Logo" class="w-12 h-12 object-cover rounded-xl" />
         </div>
         <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Al-Noor Executive Portal</h2>
-        <p class="text-xs text-slate-400 mt-1">Sneat v1.0.0 Admin Management System</p>
       </div>
 
       <!-- Error Alert -->
@@ -37,7 +36,6 @@
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
-            <span class="text-[11px] text-[#696cff] font-medium">Default: password</span>
           </div>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -77,15 +75,6 @@
         </button>
       </form>
 
-      <!-- Quick helper -->
-      <div class="mt-6 pt-5 border-t border-slate-100 text-center">
-        <button 
-          @click="fillDefault" 
-          class="text-xs text-slate-500 hover:text-[#696cff] font-medium flex items-center justify-center gap-1.5 mx-auto"
-        >
-          <i class="bx bx-key"></i> Auto-fill Admin Credentials
-        </button>
-      </div>
     </div>
   </div>
 </template>
@@ -101,8 +90,8 @@ const loading = ref(false);
 const errorMsg = ref('');
 
 const form = ref({
-  email: 'admin@alnoorbd.com',
-  password: 'password',
+  email: '',
+  password: '',
   remember: true,
 });
 
