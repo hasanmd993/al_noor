@@ -11,6 +11,14 @@ class InquiryController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        // Honeypot check for spam bots
+        if ($request->filled('website') || $request->filled('hp_field')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Thank you for contacting Al-Noor Properties BD. Our executive relationship manager will connect with you promptly.'
+            ], 200);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',

@@ -11,7 +11,7 @@ class PropertyController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Property::with(['category', 'location', 'images', 'units'])
+        $query = Property::with(['category', 'location', 'images', 'units', 'constructionUpdates'])
             ->where('is_published', true);
 
         if ($request->filled('featured')) {
@@ -69,12 +69,26 @@ class PropertyController extends Controller
                 break;
         }
 
-        $properties = $query->get();
+        if ($request->boolean('all')) {
+            $properties = $query->get();
+            return response()->json([
+                'success' => true,
+                'count' => $properties->count(),
+                'data' => $properties
+            ]);
+        }
+
+        $perPage = min((int)$request->get('per_page', 12), 100);
+        $paginator = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'count' => $properties->count(),
-            'data' => $properties
+            'count' => $paginator->total(),
+            'total' => $paginator->total(),
+            'per_page' => $paginator->perPage(),
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'data' => $paginator->items()
         ]);
     }
 
@@ -88,6 +102,7 @@ class PropertyController extends Controller
             'constructionUpdates' => fn($q) => $q->orderBy('update_date', 'desc')
         ])
         ->where('id', $id)
+        ->where('is_published', true)
         ->firstOrFail();
 
         // Related properties

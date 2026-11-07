@@ -18,7 +18,10 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -63,54 +66,97 @@ class AdminController extends Controller
 
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
         return response()->json([
             'success' => true,
-            'user' => $request->user() ?? User::first()
+            'user' => $user
         ]);
     }
 
     // --- Dashboard Analytics ---
     public function dashboardStats(): JsonResponse
     {
-        $totalProps = Property::count();
-        $ongoingProps = Property::where('status', 'ongoing')->count();
-        $completedProps = Property::where('status', 'completed')->count();
-        $upcomingProps = Property::where('status', 'upcoming')->count();
+        $stats = Cache::remember('admin_dashboard_stats', 30, function () {
+            $propCounts = Property::selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'ongoing' THEN 1 ELSE 0 END) as ongoing,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'upcoming' THEN 1 ELSE 0 END) as upcoming
+            ")->first();
 
-        $totalInquiries = Inquiry::count();
-        $newInquiries = Inquiry::where('is_read', false)->count();
-        $jvInquiries = Inquiry::where('source', 'landowner')->count();
-        $vipInquiries = Inquiry::where('source', 'property_inquiry')->count();
+            $inqCounts = Inquiry::selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) as new_inq,
+                SUM(CASE WHEN source = 'landowner' THEN 1 ELSE 0 END) as jv,
+                SUM(CASE WHEN source = 'property_inquiry' THEN 1 ELSE 0 END) as vip
+            ")->first();
 
-        $recentInquiries = Inquiry::latest()->take(6)->get();
-        $recentProps = Property::with(['category', 'location'])->latest()->take(5)->get();
-
-        return response()->json([
-            'success' => true,
-            'stats' => [
-                'total_properties' => $totalProps,
-                'ongoing_properties' => $ongoingProps,
-                'completed_properties' => $completedProps,
-                'upcoming_properties' => $upcomingProps,
-                'total_inquiries' => $totalInquiries,
-                'new_inquiries' => $newInquiries,
-                'jv_inquiries' => $jvInquiries,
-                'vip_inquiries' => $vipInquiries,
+            return [
+                'total_properties' => (int)($propCounts->total ?? 0),
+                'ongoing_properties' => (int)($propCounts->ongoing ?? 0),
+                'completed_properties' => (int)($propCounts->completed ?? 0),
+                'upcoming_properties' => (int)($propCounts->upcoming ?? 0),
+                'total_inquiries' => (int)($inqCounts->total ?? 0),
+                'new_inquiries' => (int)($inqCounts->new_inq ?? 0),
+                'jv_inquiries' => (int)($inqCounts->jv ?? 0),
+                'vip_inquiries' => (int)($inqCounts->vip ?? 0),
                 'categories_count' => Category::count(),
                 'locations_count' => Location::count(),
                 'blogs_count' => BlogPost::count(),
                 'testimonials_count' => Testimonial::count(),
-            ],
+            ];
+        });
+
+        $recentInquiries = Inquiry::latest()->take(6)->get();
+        $recentProps = Property::with(['category:id,name', 'location:id,name'])->latest()->take(5)->get();
+
+        return response()->json([
+            'success' => true,
+            'stats' => $stats,
             'recent_inquiries' => $recentInquiries,
             'recent_properties' => $recentProps,
         ]);
     }
 
     // --- Properties CRUD ---
-    public function propertiesIndex(): JsonResponse
+    public function propertiesIndex(Request $request): JsonResponse
     {
-        $properties = Property::with(['category', 'location', 'units', 'images'])->latest()->get();
-        return response()->json(['success' => true, 'data' => $properties]);
+        $perPage = min((int)$request->get('per_page', 20), 100);
+        $paginator = Property::with(['category:id,name', 'location:id,name'])
+            ->latest()
+            ->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'total' => $paginator->total(),
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'data' => $paginator->items()
+        ]);
+    }
+
+    public function propertyShow($id): JsonResponse
+    {
+        $property = Property::with([
+            'category',
+            'location',
+            'images' => fn($q) => $q->orderBy('sort_order', 'asc'),
+            'units' => fn($q) => $q->orderBy('sort_order', 'asc'),
+            'constructionUpdates' => fn($q) => $q->orderBy('update_date', 'desc')
+        ])->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $property
+        ]);
     }
 
     public function propertyStore(Request $request): JsonResponse
@@ -123,19 +169,28 @@ class AdminController extends Controller
             'status' => 'required|in:ongoing,completed,upcoming,handed_over',
             'type' => 'required|in:residential,commercial,mixed',
             'price_label' => 'nullable|string|max:255',
-            'price_from' => 'nullable|numeric',
+            'price_from' => 'nullable|numeric|min:0',
+            'price_to' => 'nullable|numeric|gte:price_from',
             'land_area' => 'nullable|numeric',
+            'land_unit' => 'nullable|string|max:50',
             'total_floors' => 'nullable|integer',
             'apartments_per_floor' => 'nullable|integer',
             'total_units' => 'nullable|integer',
             'progress_percentage' => 'nullable|integer|min:0|max:100',
+            'launch_date' => 'nullable|date',
+            'expected_completion' => 'nullable|date',
             'handover_date' => 'nullable|date',
             'featured_image' => 'nullable|string',
             'brochure_pdf' => 'nullable|string',
             'video_url' => 'nullable|string',
             'short_description' => 'nullable|string',
             'description' => 'nullable|string',
+            'amenities' => 'nullable|array',
+            'nearby_landmarks' => 'nullable|array',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
             'is_featured' => 'nullable|boolean',
+            'is_special_offer' => 'nullable|boolean',
             'is_published' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
         ]);
@@ -157,19 +212,28 @@ class AdminController extends Controller
             'status' => 'required|in:ongoing,completed,upcoming,handed_over',
             'type' => 'required|in:residential,commercial,mixed',
             'price_label' => 'nullable|string|max:255',
-            'price_from' => 'nullable|numeric',
+            'price_from' => 'nullable|numeric|min:0',
+            'price_to' => 'nullable|numeric|gte:price_from',
             'land_area' => 'nullable|numeric',
+            'land_unit' => 'nullable|string|max:50',
             'total_floors' => 'nullable|integer',
             'apartments_per_floor' => 'nullable|integer',
             'total_units' => 'nullable|integer',
             'progress_percentage' => 'nullable|integer|min:0|max:100',
+            'launch_date' => 'nullable|date',
+            'expected_completion' => 'nullable|date',
             'handover_date' => 'nullable|date',
             'featured_image' => 'nullable|string',
             'brochure_pdf' => 'nullable|string',
             'video_url' => 'nullable|string',
             'short_description' => 'nullable|string',
             'description' => 'nullable|string',
+            'amenities' => 'nullable|array',
+            'nearby_landmarks' => 'nullable|array',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
             'is_featured' => 'nullable|boolean',
+            'is_special_offer' => 'nullable|boolean',
             'is_published' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
         ]);
@@ -181,9 +245,84 @@ class AdminController extends Controller
 
     public function propertyDestroy($id): JsonResponse
     {
-        $property = Property::findOrFail($id);
+        $property = Property::with('images')->findOrFail($id);
+
+        $filesToDelete = [];
+        $checkAndAdd = function (?string $path) use (&$filesToDelete) {
+            if (!$path) return;
+            $clean = ltrim($path, '/');
+            if (Str::startsWith($clean, 'storage/')) {
+                $clean = Str::after($clean, 'storage/');
+            }
+            if ($clean && Storage::disk('public')->exists($clean)) {
+                $filesToDelete[] = $clean;
+            }
+        };
+
+        $checkAndAdd($property->featured_image);
+        $checkAndAdd($property->brochure_pdf);
+        foreach ($property->images as $img) {
+            $checkAndAdd($img->image_path);
+        }
+
+        if (!empty($filesToDelete)) {
+            Storage::disk('public')->delete($filesToDelete);
+        }
+
         $property->delete();
         return response()->json(['success' => true, 'message' => 'Property deleted successfully.']);
+    }
+
+    public function propertyImagesStore(Request $request, $id): JsonResponse
+    {
+        $property = Property::findOrFail($id);
+        $validated = $request->validate([
+            'image_path' => 'required|string',
+            'caption' => 'nullable|string|max:255',
+            'type' => 'nullable|string|max:50',
+            'sort_order' => 'nullable|integer',
+        ]);
+        $image = $property->images()->create($validated);
+        return response()->json(['success' => true, 'message' => 'Image added to gallery.', 'data' => $image], 201);
+    }
+
+    public function propertyImagesDestroy($propertyId, $imageId): JsonResponse
+    {
+        $image = PropertyImage::where('property_id', $propertyId)->findOrFail($imageId);
+        if ($image->image_path && Str::startsWith($image->image_path, '/storage/')) {
+            $clean = Str::after($image->image_path, '/storage/');
+            if (Storage::disk('public')->exists($clean)) {
+                Storage::disk('public')->delete($clean);
+            }
+        }
+        $image->delete();
+        return response()->json(['success' => true, 'message' => 'Image deleted from gallery.']);
+    }
+
+    public function propertyUnitsStore(Request $request, $id): JsonResponse
+    {
+        $property = Property::findOrFail($id);
+        $validated = $request->validate([
+            'unit_type' => 'required|string|max:100',
+            'size_sqft' => 'required|numeric|min:1',
+            'bedrooms' => 'nullable|integer|min:0',
+            'bathrooms' => 'nullable|integer|min:0',
+            'balconies' => 'nullable|integer|min:0',
+            'parking_spaces' => 'nullable|integer|min:0',
+            'floor_plan_image' => 'nullable|string',
+            'price' => 'nullable|numeric|min:0',
+            'is_available' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer',
+        ]);
+        $unit = $property->units()->create($validated);
+        return response()->json(['success' => true, 'message' => 'Unit added successfully.', 'data' => $unit], 201);
+    }
+
+    public function propertyUnitsDestroy($propertyId, $unitId): JsonResponse
+    {
+        $unit = PropertyUnit::where('property_id', $propertyId)->findOrFail($unitId);
+        $unit->delete();
+        return response()->json(['success' => true, 'message' => 'Unit deleted.']);
     }
 
     // --- Inquiries CRUD ---
@@ -196,8 +335,15 @@ class AdminController extends Controller
     public function inquiryUpdate(Request $request, $id): JsonResponse
     {
         $inquiry = Inquiry::findOrFail($id);
-        $inquiry->update($request->only(['is_read', 'status']));
-        return response()->json(['success' => true, 'message' => 'Inquiry updated.', 'data' => $inquiry]);
+
+        $validated = $request->validate([
+            'is_read' => 'nullable|boolean',
+            'status' => 'nullable|string|in:new,contacted,scheduled,closed,rejected',
+        ]);
+
+        $inquiry->update($validated);
+
+        return response()->json(['success' => true, 'message' => 'Inquiry updated successfully.', 'data' => $inquiry]);
     }
 
     public function inquiryDestroy($id): JsonResponse
@@ -296,7 +442,7 @@ class AdminController extends Controller
             'category' => 'nullable|string|max:255',
             'author' => 'nullable|string|max:255',
             'featured_image' => 'nullable|string',
-            'brochure_pdf' => 'nullable|string',
+            'tags' => 'nullable|array',
             'is_published' => 'boolean',
             'published_at' => 'nullable|date',
         ]);
@@ -314,7 +460,7 @@ class AdminController extends Controller
             'category' => 'nullable|string|max:255',
             'author' => 'nullable|string|max:255',
             'featured_image' => 'nullable|string',
-            'brochure_pdf' => 'nullable|string',
+            'tags' => 'nullable|array',
             'is_published' => 'boolean',
             'published_at' => 'nullable|date',
         ]));
@@ -323,7 +469,14 @@ class AdminController extends Controller
 
     public function blogDestroy($id): JsonResponse
     {
-        BlogPost::findOrFail($id)->delete();
+        $blog = BlogPost::findOrFail($id);
+        if ($blog->featured_image && Str::startsWith($blog->featured_image, '/storage/')) {
+            $clean = Str::after($blog->featured_image, '/storage/');
+            if (Storage::disk('public')->exists($clean)) {
+                Storage::disk('public')->delete($clean);
+            }
+        }
+        $blog->delete();
         return response()->json(['success' => true, 'message' => 'Article deleted.']);
     }
 
@@ -418,7 +571,7 @@ class AdminController extends Controller
             public function uploadMedia(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:jpeg,png,jpg,webp,avif,svg,pdf,doc,docx|max:51200',
+            'file' => 'required|file|mimes:jpeg,png,jpg,webp,avif,pdf,doc,docx|max:51200',
         ]);
 
         $file = $request->file('file');
@@ -475,5 +628,30 @@ class AdminController extends Controller
                 'filename' => $filename,
             ]);
         }
+    }
+
+    // --- Corporate Settings ---
+    public function settingsUpdate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'company_name' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:50',
+            'whatsapp' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:1000',
+            'brochure_url' => 'nullable|string|max:500',
+        ]);
+
+        foreach ($validated as $key => $value) {
+            SiteSetting::setValue($key, $value, 'corporate');
+        }
+
+        Cache::forget('site_settings_kv');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Corporate settings updated successfully.',
+            'data' => SiteSetting::all()->pluck('value', 'key'),
+        ]);
     }
 }

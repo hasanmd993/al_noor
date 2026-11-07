@@ -15,56 +15,69 @@ Route::get('/user', function (Request $request) {
 
 // --- Sneat Vue Admin API ---
 Route::prefix('admin')->group(function () {
-    Route::post('/media/upload', [AdminController::class, 'uploadMedia']);
-    Route::post('/login', [AdminController::class, 'login']);
-    Route::post('/logout', [AdminController::class, 'logout']);
-    Route::get('/me', [AdminController::class, 'me']);
-    Route::get('/dashboard-stats', [AdminController::class, 'dashboardStats']);
+    // Public authentication endpoint (rate-limited against brute force)
+    Route::post('/login', [AdminController::class, 'login'])->middleware('throttle:5,1');
 
-    // Properties
-    Route::get('/properties', [AdminController::class, 'propertiesIndex']);
-    Route::post('/properties', [AdminController::class, 'propertyStore']);
-    Route::put('/properties/{id}', [AdminController::class, 'propertyUpdate']);
-    Route::delete('/properties/{id}', [AdminController::class, 'propertyDestroy']);
+    // Protected Admin Endpoints
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AdminController::class, 'logout']);
+        Route::get('/me', [AdminController::class, 'me']);
+        Route::get('/dashboard-stats', [AdminController::class, 'dashboardStats']);
+        Route::post('/media/upload', [AdminController::class, 'uploadMedia']);
 
-    // Inquiries
-    Route::get('/inquiries', [AdminController::class, 'inquiriesIndex']);
-    Route::put('/inquiries/{id}', [AdminController::class, 'inquiryUpdate']);
-    Route::delete('/inquiries/{id}', [AdminController::class, 'inquiryDestroy']);
+        // Properties
+        Route::get('/properties', [AdminController::class, 'propertiesIndex']);
+        Route::get('/properties/{id}', [AdminController::class, 'propertyShow']);
+        Route::post('/properties', [AdminController::class, 'propertyStore']);
+        Route::put('/properties/{id}', [AdminController::class, 'propertyUpdate']);
+        Route::delete('/properties/{id}', [AdminController::class, 'propertyDestroy']);
+        Route::post('/properties/{id}/images', [AdminController::class, 'propertyImagesStore']);
+        Route::delete('/properties/{propertyId}/images/{imageId}', [AdminController::class, 'propertyImagesDestroy']);
+        Route::post('/properties/{id}/units', [AdminController::class, 'propertyUnitsStore']);
+        Route::delete('/properties/{propertyId}/units/{unitId}', [AdminController::class, 'propertyUnitsDestroy']);
 
-    // Categories
-    Route::get('/categories', [AdminController::class, 'categoriesIndex']);
-    Route::post('/categories', [AdminController::class, 'categoryStore']);
-    Route::put('/categories/{id}', [AdminController::class, 'categoryUpdate']);
-    Route::delete('/categories/{id}', [AdminController::class, 'categoryDestroy']);
+        // Inquiries
+        Route::get('/inquiries', [AdminController::class, 'inquiriesIndex']);
+        Route::put('/inquiries/{id}', [AdminController::class, 'inquiryUpdate']);
+        Route::delete('/inquiries/{id}', [AdminController::class, 'inquiryDestroy']);
 
-    // Locations
-    Route::get('/locations', [AdminController::class, 'locationsIndex']);
-    Route::post('/locations', [AdminController::class, 'locationStore']);
-    Route::put('/locations/{id}', [AdminController::class, 'locationUpdate']);
-    Route::delete('/locations/{id}', [AdminController::class, 'locationDestroy']);
+        // Categories
+        Route::get('/categories', [AdminController::class, 'categoriesIndex']);
+        Route::post('/categories', [AdminController::class, 'categoryStore']);
+        Route::put('/categories/{id}', [AdminController::class, 'categoryUpdate']);
+        Route::delete('/categories/{id}', [AdminController::class, 'categoryDestroy']);
 
-    // Blogs
-    Route::get('/blogs', [AdminController::class, 'blogsIndex']);
-    Route::post('/blogs', [AdminController::class, 'blogStore']);
-    Route::put('/blogs/{id}', [AdminController::class, 'blogUpdate']);
-    Route::delete('/blogs/{id}', [AdminController::class, 'blogDestroy']);
+        // Locations
+        Route::get('/locations', [AdminController::class, 'locationsIndex']);
+        Route::post('/locations', [AdminController::class, 'locationStore']);
+        Route::put('/locations/{id}', [AdminController::class, 'locationUpdate']);
+        Route::delete('/locations/{id}', [AdminController::class, 'locationDestroy']);
 
-    // Testimonials
-    Route::get('/testimonials', [AdminController::class, 'testimonialsIndex']);
-    Route::post('/testimonials', [AdminController::class, 'testimonialStore']);
-    Route::put('/testimonials/{id}', [AdminController::class, 'testimonialUpdate']);
-    Route::delete('/testimonials/{id}', [AdminController::class, 'testimonialDestroy']);
+        // Blogs
+        Route::get('/blogs', [AdminController::class, 'blogsIndex']);
+        Route::post('/blogs', [AdminController::class, 'blogStore']);
+        Route::put('/blogs/{id}', [AdminController::class, 'blogUpdate']);
+        Route::delete('/blogs/{id}', [AdminController::class, 'blogDestroy']);
 
-    // Sliders
-    Route::get('/sliders', [AdminController::class, 'slidersIndex']);
-    Route::post('/sliders', [AdminController::class, 'sliderStore']);
-    Route::put('/sliders/{id}', [AdminController::class, 'sliderUpdate']);
-    Route::delete('/sliders/{id}', [AdminController::class, 'sliderDestroy']);
+        // Testimonials
+        Route::get('/testimonials', [AdminController::class, 'testimonialsIndex']);
+        Route::post('/testimonials', [AdminController::class, 'testimonialStore']);
+        Route::put('/testimonials/{id}', [AdminController::class, 'testimonialUpdate']);
+        Route::delete('/testimonials/{id}', [AdminController::class, 'testimonialDestroy']);
+
+        // Sliders
+        Route::get('/sliders', [AdminController::class, 'slidersIndex']);
+        Route::post('/sliders', [AdminController::class, 'sliderStore']);
+        Route::put('/sliders/{id}', [AdminController::class, 'sliderUpdate']);
+        Route::delete('/sliders/{id}', [AdminController::class, 'sliderDestroy']);
+
+        // Settings
+        Route::put('/settings', [AdminController::class, 'settingsUpdate']);
+    });
 });
 
-// --- Public Client Website APIs ---
-Route::prefix('v1')->group(function () {
+// --- Public Client Website APIs (Available at both /api/* and /api/v1/*) ---
+$registerPublicRoutes = function () {
     Route::get('/properties', [PropertyController::class, 'index']);
     Route::get('/properties/featured', [PropertyController::class, 'featured']);
     Route::get('/properties/{id}', [PropertyController::class, 'show']);
@@ -79,18 +92,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/team', [ContentController::class, 'team']);
     Route::get('/settings', [ContentController::class, 'settings']);
 
-    Route::post('/inquiries', [InquiryController::class, 'store']);
-});
+    Route::post('/inquiries', [InquiryController::class, 'store'])->middleware('throttle:10,1');
+};
 
-Route::get('/properties', [PropertyController::class, 'index']);
-Route::get('/properties/featured', [PropertyController::class, 'featured']);
-Route::get('/properties/{id}', [PropertyController::class, 'show']);
-Route::get('/locations', [LocationController::class, 'index']);
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/sliders', [ContentController::class, 'sliders']);
-Route::get('/blogs', [ContentController::class, 'blogs']);
-Route::get('/blogs/{id}', [ContentController::class, 'blogDetail']);
-Route::get('/testimonials', [ContentController::class, 'testimonials']);
-Route::get('/team', [ContentController::class, 'team']);
-Route::get('/settings', [ContentController::class, 'settings']);
-Route::post('/inquiries', [InquiryController::class, 'store']);
+Route::group([], $registerPublicRoutes);
+Route::prefix('v1')->group($registerPublicRoutes);

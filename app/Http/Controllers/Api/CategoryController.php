@@ -10,11 +10,12 @@ class CategoryController extends Controller
 {
     public function index(): JsonResponse
     {
-        $categories = Category::withCount(['properties' => function ($q) {
-            $q->where('is_published', true);
-        }])
-        ->orderBy('name', 'asc')
-        ->get();
+        $categories = Category::where('is_active', true)
+            ->withCount(['properties' => function ($q) {
+                $q->where('is_published', true);
+            }])
+            ->orderBy('name', 'asc')
+            ->get();
 
         return response()->json([
             'success' => true,

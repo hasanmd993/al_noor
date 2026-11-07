@@ -23,6 +23,9 @@
       :property-name="selectedPropertyName"
       @close="vipModalOpen = false"
     />
+
+    <!-- Floating Luxury WhatsApp Concierge -->
+    <WhatsAppConcierge />
   </div>
 </template>
 
@@ -32,6 +35,7 @@ import { useRoute } from 'vue-router';
 import Navbar from './components/Navbar.vue';
 import Footer from './components/Footer.vue';
 import VipModal from './components/VipModal.vue';
+import WhatsAppConcierge from './components/WhatsAppConcierge.vue';
 
 const route = useRoute();
 const isAdminRoute = computed(() => route.path.startsWith('/admin'));

@@ -95,11 +95,6 @@ const form = ref({
   remember: true,
 });
 
-const fillDefault = () => {
-  form.value.email = 'admin@alnoorbd.com';
-  form.value.password = 'password';
-};
-
 const handleSubmit = async () => {
   loading.value = true;
   errorMsg.value = '';

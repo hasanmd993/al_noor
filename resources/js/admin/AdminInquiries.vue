@@ -71,8 +71,9 @@
                 >
                   <option value="new">New</option>
                   <option value="contacted">Contacted</option>
-                  <option value="meeting_scheduled">Meeting Scheduled</option>
+                  <option value="scheduled">Meeting Scheduled</option>
                   <option value="closed">Closed / Won</option>
+                  <option value="rejected">Rejected</option>
                 </select>
               </td>
               <td class="px-6 py-3.5 text-right relative">

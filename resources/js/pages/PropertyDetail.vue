@@ -327,6 +327,26 @@
 
   </div>
 
+  <!-- 404 Not Found State -->
+  <div v-else-if="notFound" class="pt-36 pb-28 max-w-3xl mx-auto px-4 text-center space-y-6">
+    <div class="w-16 h-16 mx-auto rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl font-bold">
+      ✦
+    </div>
+    <span class="text-xs uppercase tracking-widest text-amber-400 font-bold block">Signature Portfolio</span>
+    <h1 class="font-cinzel text-3xl sm:text-4xl font-extrabold text-white">Development Not Found</h1>
+    <p class="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+      The requested luxury residence could not be found or may have been archived following complete handover delivery.
+    </p>
+    <div class="pt-4 flex flex-wrap items-center justify-center gap-4">
+      <router-link to="/properties" class="px-7 py-3.5 rounded-full text-xs font-bold uppercase tracking-wider gold-gradient-bg text-slate-950 hover:shadow-xl transition-all cursor-pointer">
+        Explore Active Collection
+      </router-link>
+      <router-link to="/" class="px-6 py-3.5 rounded-full text-xs font-semibold text-slate-300 hover:text-white border border-slate-800 hover:border-amber-500/40 transition-colors">
+        Return to Home
+      </router-link>
+    </div>
+  </div>
+
   <div v-else class="min-h-screen flex items-center justify-center text-center p-8">
     <div class="space-y-4">
       <div class="w-12 h-12 rounded-full border-2 border-amber-400 border-t-transparent animate-spin mx-auto"></div>
@@ -347,6 +367,7 @@ const route = useRoute();
 defineEmits(['open-vip-modal']);
 
 const property = ref(null);
+const notFound = ref(false);
 const hasBrochure = computed(() => {
   return property.value?.brochure_pdf && 
          property.value.brochure_pdf !== '#' && 
@@ -489,6 +510,7 @@ const getAmenityIcon = (name) => {
 
 const fetchProperty = async () => {
   try {
+    notFound.value = false;
     const id = route.params.id;
     const res = await axios.get(`/api/properties/${id}`);
     if (res.data?.data) {
@@ -498,8 +520,11 @@ const fetchProperty = async () => {
         activeImageCaption.value = allImages.value[0].caption;
         activeImageIndex.value = 0;
       }
+    } else {
+      notFound.value = true;
     }
   } catch (err) {
+    notFound.value = true;
     console.error('Failed to load property:', err);
   }
 };

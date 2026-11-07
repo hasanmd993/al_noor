@@ -9,6 +9,10 @@
       <i class="bx bx-check-circle text-lg"></i> Settings saved successfully!
     </div>
 
+    <div v-if="errorMsg" class="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+      <i class="bx bx-error-circle text-lg"></i> {{ errorMsg }}
+    </div>
+
     <form @submit.prevent="saveSettings" class="bg-white rounded-2xl p-6 md:p-8 border border-[#e7e7e8] shadow-sm space-y-6 text-xs w-full">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
@@ -43,8 +47,13 @@
       </div>
 
       <div class="pt-4 border-t border-slate-100 flex justify-end">
-        <button type="submit" class="px-6 py-2.5 bg-[#696cff] hover:bg-[#5f61e6] text-white font-bold text-xs rounded-xl shadow-lg shadow-[#696cff]/20 cursor-pointer">
-          Save Settings
+        <button 
+          type="submit" 
+          :disabled="saving"
+          class="px-6 py-2.5 bg-[#696cff] hover:bg-[#5f61e6] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-[#696cff]/20 cursor-pointer flex items-center gap-2"
+        >
+          <i v-if="saving" class="bx bx-loader-alt animate-spin"></i>
+          <span>{{ saving ? 'Saving Changes...' : 'Save Settings' }}</span>
         </button>
       </div>
     </form>
@@ -52,9 +61,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
 
 const saved = ref(false);
+const saving = ref(false);
+const errorMsg = ref('');
 const settings = ref({
   company_name: 'Al-Noor Properties BD',
   phone: '+880 1711-000000',
@@ -64,8 +76,36 @@ const settings = ref({
   brochure_url: '/assets/alnoor_brochure.pdf'
 });
 
-const saveSettings = () => {
-  saved.value = true;
-  setTimeout(() => saved.value = false, 3000);
+const loadSettings = async () => {
+  try {
+    const res = await axios.get('/api/settings');
+    if (res.data?.data) {
+      Object.keys(res.data.data).forEach(key => {
+        if (settings.value[key] !== undefined && res.data.data[key]) {
+          settings.value[key] = res.data.data[key];
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Failed to load corporate settings:', err);
+  }
 };
+
+const saveSettings = async () => {
+  saving.value = true;
+  errorMsg.value = '';
+  try {
+    await axios.put('/api/admin/settings', settings.value);
+    saved.value = true;
+    setTimeout(() => saved.value = false, 3500);
+  } catch (err) {
+    errorMsg.value = err.response?.data?.message || 'Failed to save settings. Please try again.';
+  } finally {
+    saving.value = false;
+  }
+};
+
+onMounted(() => {
+  loadSettings();
+});
 </script>

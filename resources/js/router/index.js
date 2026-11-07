@@ -11,20 +11,6 @@ import Journal from '../pages/Journal.vue';
 import JournalDetail from '../pages/JournalDetail.vue';
 import Contact from '../pages/Contact.vue';
 
-// Sneat Admin Components
-import AdminLayout from '../admin/AdminLayout.vue';
-import AdminLogin from '../admin/AdminLogin.vue';
-import AdminDashboard from '../admin/AdminDashboard.vue';
-import AdminProperties from '../admin/AdminProperties.vue';
-import AdminPropertyForm from '../admin/AdminPropertyForm.vue';
-import AdminInquiries from '../admin/AdminInquiries.vue';
-import AdminLocations from '../admin/AdminLocations.vue';
-import AdminCategories from '../admin/AdminCategories.vue';
-import AdminBlogs from '../admin/AdminBlogs.vue';
-import AdminTestimonials from '../admin/AdminTestimonials.vue';
-import AdminSliders from '../admin/AdminSliders.vue';
-import AdminSettings from '../admin/AdminSettings.vue';
-
 const routes = [
   // --- Public Website Routes ---
   {
@@ -82,16 +68,16 @@ const routes = [
     meta: { title: 'Concierge & Contact | Al-Noor Properties BD' }
   },
 
-  // --- Sneat Vue Admin Portal ---
+  // --- Sneat Vue Admin Portal (Lazy Loaded Code Split) ---
   {
     path: '/admin/login',
     name: 'AdminLogin',
-    component: AdminLogin,
+    component: () => import('../admin/AdminLogin.vue'),
     meta: { title: 'Admin Login | Al-Noor Properties BD' }
   },
   {
     path: '/admin',
-    component: AdminLayout,
+    component: () => import('../admin/AdminLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {
@@ -101,67 +87,67 @@ const routes = [
       {
         path: 'dashboard',
         name: 'AdminDashboard',
-        component: AdminDashboard,
+        component: () => import('../admin/AdminDashboard.vue'),
         meta: { title: 'Analytics Dashboard | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'properties',
         name: 'AdminProperties',
-        component: AdminProperties,
+        component: () => import('../admin/AdminProperties.vue'),
         meta: { title: 'Projects & Units | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'properties/create',
         name: 'AdminPropertyCreate',
-        component: AdminPropertyForm,
+        component: () => import('../admin/AdminPropertyForm.vue'),
         meta: { title: 'Add New Project | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'properties/:id/edit',
         name: 'AdminPropertyEdit',
-        component: AdminPropertyForm,
+        component: () => import('../admin/AdminPropertyForm.vue'),
         meta: { title: 'Edit Project | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'inquiries',
         name: 'AdminInquiries',
-        component: AdminInquiries,
+        component: () => import('../admin/AdminInquiries.vue'),
         meta: { title: 'Inquiries & VIP Leads | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'locations',
         name: 'AdminLocations',
-        component: AdminLocations,
+        component: () => import('../admin/AdminLocations.vue'),
         meta: { title: 'Dhaka Locations | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'categories',
         name: 'AdminCategories',
-        component: AdminCategories,
+        component: () => import('../admin/AdminCategories.vue'),
         meta: { title: 'Property Categories | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'blogs',
         name: 'AdminBlogs',
-        component: AdminBlogs,
+        component: () => import('../admin/AdminBlogs.vue'),
         meta: { title: 'Journal & Articles | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'testimonials',
         name: 'AdminTestimonials',
-        component: AdminTestimonials,
+        component: () => import('../admin/AdminTestimonials.vue'),
         meta: { title: 'Testimonials | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'sliders',
         name: 'AdminSliders',
-        component: AdminSliders,
+        component: () => import('../admin/AdminSliders.vue'),
         meta: { title: 'Hero Banners | Sneat Admin', requiresAuth: true }
       },
       {
         path: 'settings',
         name: 'AdminSettings',
-        component: AdminSettings,
+        component: () => import('../admin/AdminSettings.vue'),
         meta: { title: 'Site Settings | Sneat Admin', requiresAuth: true }
       },
     ]

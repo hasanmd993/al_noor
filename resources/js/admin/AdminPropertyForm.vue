@@ -234,7 +234,7 @@ const loadInitial = async () => {
 
     if (route.params.id) {
       isEdit.value = true;
-      const propRes = await axios.get(`/api/properties/${route.params.id}`);
+      const propRes = await axios.get(`/api/admin/properties/${route.params.id}`);
       if (propRes.data && propRes.data.data) {
         Object.assign(form.value, propRes.data.data);
       }

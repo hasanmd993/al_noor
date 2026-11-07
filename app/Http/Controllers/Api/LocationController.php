@@ -10,11 +10,12 @@ class LocationController extends Controller
 {
     public function index(): JsonResponse
     {
-        $locations = Location::withCount(['properties' => function ($q) {
-            $q->where('is_published', true);
-        }])
-        ->orderBy('name', 'asc')
-        ->get();
+        $locations = Location::where('is_active', true)
+            ->withCount(['properties' => function ($q) {
+                $q->where('is_published', true);
+            }])
+            ->orderBy('name', 'asc')
+            ->get();
 
         return response()->json([
             'success' => true,

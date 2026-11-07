@@ -9,6 +9,8 @@ use App\Models\Slider;
 use App\Models\TeamMember;
 use App\Models\Testimonial;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ContentController extends Controller
 {
@@ -36,13 +38,17 @@ class ContentController extends Controller
         ]);
     }
 
-    public function blogDetail(string|int $id): JsonResponse
+    public function blogDetail(Request $request, string|int $id): JsonResponse
     {
         $blog = BlogPost::where('id', $id)
             ->where('is_published', true)
             ->firstOrFail();
 
-        $blog->increment('views');
+        $ip = $request->ip() ?? 'unknown';
+        $cacheKey = "viewed_blog_{$blog->id}_{$ip}";
+        if (Cache::add($cacheKey, 1, now()->addMinutes(30))) {
+            $blog->increment('views');
+        }
 
         $recent = BlogPost::where('id', '!=', $blog->id)
             ->where('is_published', true)
@@ -83,7 +89,9 @@ class ContentController extends Controller
 
     public function settings(): JsonResponse
     {
-        $settings = SiteSetting::all()->pluck('value', 'key');
+        $settings = Cache::remember('site_settings_kv', 3600, function () {
+            return SiteSetting::all()->pluck('value', 'key');
+        });
 
         return response()->json([
             'success' => true,
